@@ -1,25 +1,712 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My First S3 Website</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 100px;
-      background-color: #f4f4f4;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Actions | DevOps Deployment</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #080d19;
+    --card: #111a2b;
+    --border: #26344a;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+}
+
+body {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+.background {
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(37,99,235,.17), transparent 35%),
+        radial-gradient(circle at 85% 75%, rgba(16,185,129,.09), transparent 30%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.navbar {
+    height: 75px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 7%;
+    background: rgba(8,13,25,.8);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.github-logo {
+    width: 37px;
+    height: 37px;
+    background: white;
+    color: #080d19;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 900;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.live {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #4ade80;
+}
+
+.dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 10px #22c55e;
+}
+
+.container {
+    width: 86%;
+    max-width: 1200px;
+    margin: 65px auto;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(59,130,246,.12);
+    color: #60a5fa;
+    border: 1px solid rgba(59,130,246,.3);
+    padding: 8px 14px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.hero {
+    margin-top: 25px;
+}
+
+.hero h1 {
+    font-size: clamp(36px, 6vw, 65px);
+    letter-spacing: -2px;
+    line-height: 1.1;
+    margin-bottom: 18px;
+}
+
+.gradient-text {
+    background: linear-gradient(90deg, #60a5fa, #38bdf8, #34d399);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero p {
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.8;
+    max-width: 650px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 14px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 13px 21px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition: .2s;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    border: 1px solid var(--border);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--card);
+}
+
+.section-title {
+    font-size: 19px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.pipeline-section {
+    margin-top: 65px;
+}
+
+.pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.stage {
+    background: rgba(17,26,43,.9);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 23px 19px;
+    position: relative;
+    transition: .25s;
+}
+
+.stage:hover {
+    transform: translateY(-5px);
+    border-color: #3b82f6;
+}
+
+.stage-number {
+    font-size: 11px;
+    color: #64748b;
+    letter-spacing: 1px;
+}
+
+.stage-icon {
+    font-size: 29px;
+    margin: 17px 0;
+}
+
+.stage h3 {
+    font-size: 16px;
+    margin-bottom: 9px;
+}
+
+.stage p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+    min-height: 40px;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #4ade80;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 19px;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    background: #22c55e;
+    border-radius: 50%;
+}
+
+.tech-section {
+    margin-top: 65px;
+}
+
+.tech-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.tech-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 23px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: .2s;
+}
+
+.tech-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-3px);
+}
+
+.tech-icon {
+    font-size: 28px;
+}
+
+.tech-card h4 {
+    font-size: 14px;
+}
+
+.tech-card span {
+    color: var(--muted);
+    font-size: 11px;
+    display: block;
+    margin-top: 5px;
+}
+
+.details-section {
+    margin-top: 65px;
+    display: grid;
+    grid-template-columns: 1.3fr .7fr;
+    gap: 20px;
+}
+
+.panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 26px;
+}
+
+.panel h3 {
+    font-size: 17px;
+    margin-bottom: 23px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    gap: 12px;
+}
+
+.detail-row:last-child {
+    border: none;
+}
+
+.detail-row span:first-child {
+    color: var(--muted);
+}
+
+.detail-row span:last-child {
+    font-weight: 600;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.success-panel {
+    background: linear-gradient(145deg, #102d28, #111a2b);
+    border-color: #166b4b;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.success-icon {
+    height: 65px;
+    width: 65px;
+    background: rgba(34,197,94,.15);
+    border: 1px solid rgba(34,197,94,.4);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    margin-bottom: 18px;
+}
+
+.success-panel h2 {
+    font-size: 22px;
+    color: #4ade80;
+    margin-bottom: 12px;
+}
+
+.success-panel p {
+    color: #a7b8b1;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.footer {
+    border-top: 1px solid var(--border);
+    margin-top: 75px;
+    padding: 27px 7%;
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 12px;
+    gap: 15px;
+}
+
+.footer strong {
+    color: #60a5fa;
+}
+
+#clock {
+    color: #cbd5e1;
+}
+
+@media(max-width: 900px) {
+    .pipeline, .tech-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
-    h1 {
-      color: #2e86de;
+
+    .details-section {
+        grid-template-columns: 1fr;
     }
-    p {
-      color: #555;
+}
+
+@media(max-width: 550px) {
+    .navbar {
+        padding: 0 5%;
     }
-  </style>
+
+    .nav-right {
+        font-size: 11px;
+        gap: 8px;
+    }
+
+    .container {
+        width: 90%;
+        margin: 45px auto;
+    }
+
+    .pipeline, .tech-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero h1 {
+        letter-spacing: -1px;
+    }
+
+    .footer {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
 </head>
+
 <body>
-  <h1>🚀 Hello from S3!</h1>
-  <p>This static website is hosted using Amazon S3.</p>
+
+<div class="background"></div>
+
+<!-- NAVIGATION -->
+<nav class="navbar">
+    <div class="brand">
+        <div class="github-logo">⌘</div>
+        <span>GitHub Actions</span>
+    </div>
+
+    <div class="nav-right">
+        <div class="live">
+            <span class="dot"></span>
+            LIVE ENVIRONMENT
+        </div>
+        <span id="clock"></span>
+    </div>
+</nav>
+
+<main class="container">
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="tag">
+            ✦ DEVOPS AUTOMATION PROJECT
+        </div>
+
+        <h1>
+            Automate.<br>
+            Deploy. <span class="gradient-text">Scale.</span>
+        </h1>
+
+        <p>
+            Welcome to our automated CI/CD deployment platform.
+            Provision cloud infrastructure using Terraform, configure
+            servers with Ansible, and deploy applications seamlessly
+            using GitHub Actions.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="#pipeline" class="btn btn-primary">
+                Explore Pipeline →
+            </a>
+
+            <a href="#architecture" class="btn btn-secondary">
+                View Architecture
+            </a>
+        </div>
+    </section>
+
+    <!-- PIPELINE -->
+    <section class="pipeline-section" id="pipeline">
+
+        <h2 class="section-title">
+            <span class="gradient-text">01.</span> CI/CD Pipeline
+        </h2>
+
+        <div class="pipeline">
+
+            <div class="stage">
+                <div class="stage-number">STAGE 01</div>
+                <div class="stage-icon">☁️</div>
+                <h3>Terraform</h3>
+                <p>
+                    Infrastructure provisioning on AWS.
+                    Create EC2 and configure security groups.
+                </p>
+                <div class="status">
+                    <span class="status-dot"></span>
+                    INFRASTRUCTURE
+                </div>
+            </div>
+
+            <div class="stage">
+                <div class="stage-number">STAGE 02</div>
+                <div class="stage-icon">⚙️</div>
+                <h3>Ansible</h3>
+                <p>
+                    Configuration management, server setup
+                    and automated Nginx installation.
+                </p>
+                <div class="status">
+                    <span class="status-dot"></span>
+                    CONFIGURATION
+                </div>
+            </div>
+
+            <div class="stage">
+                <div class="stage-number">STAGE 03</div>
+                <div class="stage-icon">📦</div>
+                <h3>Deployment</h3>
+                <p>
+                    Transfer application files to the
+                    EC2 instance using secure SSH.
+                </p>
+                <div class="status">
+                    <span class="status-dot"></span>
+                    DELIVERY
+                </div>
+            </div>
+
+            <div class="stage">
+                <div class="stage-number">STAGE 04</div>
+                <div class="stage-icon">🌐</div>
+                <h3>Live Website</h3>
+                <p>
+                    Serve the static HTML application
+                    using the Nginx web server.
+                </p>
+                <div class="status">
+                    <span class="status-dot"></span>
+                    WEB SERVER
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- TECHNOLOGIES -->
+    <section class="tech-section" id="architecture">
+
+        <h2 class="section-title">
+            <span class="gradient-text">02.</span> Technology Stack
+        </h2>
+
+        <div class="tech-grid">
+
+            <div class="tech-card">
+                <div class="tech-icon">🐙</div>
+                <div>
+                    <h4>GitHub Actions</h4>
+                    <span>CI/CD Automation</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">🏗️</div>
+                <div>
+                    <h4>Terraform</h4>
+                    <span>Infrastructure as Code</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">🔧</div>
+                <div>
+                    <h4>Ansible</h4>
+                    <span>Configuration Management</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">☁️</div>
+                <div>
+                    <h4>Amazon AWS</h4>
+                    <span>Cloud Infrastructure</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">🐧</div>
+                <div>
+                    <h4>Linux</h4>
+                    <span>Operating System</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">🌍</div>
+                <div>
+                    <h4>Nginx</h4>
+                    <span>Web Server</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">🔐</div>
+                <div>
+                    <h4>SSH</h4>
+                    <span>Secure Connectivity</span>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <div class="tech-icon">💻</div>
+                <div>
+                    <h4>HTML5</h4>
+                    <span>Frontend Application</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- DEPLOYMENT DETAILS -->
+    <section class="details-section">
+
+        <div class="panel">
+            <h3>Deployment Configuration</h3>
+
+            <div class="detail-row">
+                <span>Cloud Provider</span>
+                <span>Amazon Web Services</span>
+            </div>
+
+            <div class="detail-row">
+                <span>AWS Region</span>
+                <span>ap-south-1 (Mumbai)</span>
+            </div>
+
+            <div class="detail-row">
+                <span>EC2 Instance</span>
+                <span>t3.micro</span>
+            </div>
+
+            <div class="detail-row">
+                <span>Infrastructure</span>
+                <span>Terraform</span>
+            </div>
+
+            <div class="detail-row">
+                <span>Configuration</span>
+                <span>Ansible</span>
+            </div>
+
+            <div class="detail-row">
+                <span>Web Server</span>
+                <span>Nginx</span>
+            </div>
+
+            <div class="detail-row">
+                <span>Deployment Directory</span>
+                <span>/var/www/html/</span>
+            </div>
+        </div>
+
+        <div class="panel success-panel">
+            <div class="success-icon">✓</div>
+
+            <h2>Cloud Native.</h2>
+
+            <p>
+                Infrastructure as Code.<br>
+                Automated Configuration.<br>
+                Continuous Deployment.<br><br>
+                <strong>Powered by GitHub Actions.</strong>
+            </p>
+        </div>
+
+    </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div>
+        Built with <strong>GitHub Actions</strong> & AWS
+    </div>
+
+    <div>
+        Terraform • Ansible • Nginx
+    </div>
+
+    <div>
+        © <span id="year"></span> DevOps Automation
+    </div>
+</footer>
+
+<script>
+function updateClock() {
+    const now = new Date();
+
+    document.getElementById("clock").textContent =
+        now.toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+document.getElementById("year").textContent =
+    new Date().getFullYear();
+</script>
+
 </body>
 </html>
