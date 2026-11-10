@@ -1,0 +1,26 @@
+---
+- name: Configure EC2 Web Server
+  hosts: webservers
+  become: yes
+
+  tasks:
+
+    - name: Update system packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+
+    - name: Install Nginx
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+
+    - name: Start and enable Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Verify Nginx service
+      ansible.builtin.command: systemctl is-active nginx
+      changed_when: false
