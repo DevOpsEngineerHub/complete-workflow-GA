@@ -31,7 +31,7 @@ data "aws_vpc" "default" {
 # ==========================================
 
 resource "aws_security_group" "web_sg" {
-  name        = "morning-class-web-sg"
+  name        = "morning-class-web-sg1"
   description = "Allow SSH and HTTP traffic"
   vpc_id      = data.aws_vpc.default.id
 
