@@ -1,14 +1,18 @@
 
-name: Terraform-Ansible-Website-Deployment
+name: AWS-Terraform-Ansible-HTTPD-Deployment
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: terraform-ansible-deployment
+  group: aws-ec2-deployment
   cancel-in-progress: false
 
 env:
@@ -62,16 +66,16 @@ jobs:
         id: get-ip
         run: |
           EC2_IP=$(terraform output -raw public_ip)
-          echo "public_ip=$EC2_IP" >> $GITHUB_OUTPUT
+          echo "public_ip=$EC2_IP" >> "$GITHUB_OUTPUT"
           echo "EC2 Public IP: $EC2_IP"
 
 
   # ==========================================
-  # JOB 2: ANSIBLE - CONFIGURE EC2 INSTANCE
+  # JOB 2: ANSIBLE - INSTALL APACHE HTTPD
   # ==========================================
 
   ansible:
-    name: Ansible - Configure EC2
+    name: Ansible - Configure Apache HTTPD
     runs-on: ubuntu-latest
     needs: terraform
 
@@ -92,16 +96,39 @@ jobs:
         run: ansible --version
 
       - name: Configure SSH Private Key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' '${{ secrets.EC2_SSH_KEY }}' > ~/.ssh/ec2_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
 
+      - name: Wait for EC2 SSH
+        env:
+          EC2_IP: ${{ needs.terraform.outputs.public_ip }}
+        run: |
+          for i in {1..30}; do
+            if ssh -i ~/.ssh/ec2_key \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=5 \
+              ec2-user@$EC2_IP "echo SSH Connected"; then
+              exit 0
+            fi
+
+            echo "Waiting for EC2 SSH..."
+            sleep 10
+          done
+
+          echo "EC2 SSH connection failed"
+          exit 1
+
       - name: Create Ansible Inventory
+        env:
+          EC2_IP: ${{ needs.terraform.outputs.public_ip }}
         run: |
           cat > inventory.ini <<EOF
           [webservers]
-          web ansible_host=${{ needs.terraform.outputs.public_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=/home/runner/.ssh/ec2_key ansible_python_interpreter=/usr/bin/python3
+          web ansible_host=$EC2_IP ansible_user=ec2-user ansible_ssh_private_key_file=/home/runner/.ssh/ec2_key ansible_python_interpreter=/usr/bin/python3
           EOF
 
           cat inventory.ini
@@ -110,8 +137,10 @@ jobs:
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
-          ansible webservers -i inventory.ini -m ping -o -vvv \
-            --ssh-extra-args='-o StrictHostKeyChecking=no'
+          ansible webservers \
+            -i inventory.ini \
+            -m ping \
+            -vvv
 
       - name: Execute Ansible Playbook
         env:
@@ -119,16 +148,15 @@ jobs:
         run: |
           ansible-playbook \
             -i inventory.ini \
-            playbook.yml \
-            --ssh-extra-args='-o StrictHostKeyChecking=no'
+            playbook.yml
 
 
   # ==========================================
-  # JOB 3: DEPLOY STATIC HTML WEBSITE
+  # JOB 3: DEPLOY STATIC HTML USING HTTPD
   # ==========================================
 
   deploy:
-    name: Deploy Static Website
+    name: Deploy HTML Website
     runs-on: ubuntu-latest
     needs: ansible
 
@@ -139,13 +167,16 @@ jobs:
 
       - name: Verify HTML File
         run: |
+          echo "Checking index.html..."
           ls -l index.html
           test -f index.html
 
       - name: Configure SSH Private Key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' '${{ secrets.EC2_SSH_KEY }}' > ~/.ssh/ec2_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
 
       - name: Copy HTML File to EC2
@@ -157,16 +188,43 @@ jobs:
             index.html \
             ec2-user@$EC2_IP:/tmp/index.html
 
-      - name: Deploy HTML to Nginx Web Directory
+      - name: Deploy HTML to Apache HTTPD
         env:
           EC2_IP: ${{ needs.ansible.outputs.public_ip }}
         run: |
           ssh -i ~/.ssh/ec2_key \
             -o StrictHostKeyChecking=no \
             ec2-user@$EC2_IP \
-            "sudo install -m 644 /tmp/index.html /var/www/html/index.html"
+            "sudo mkdir -p /var/www/html && \
+             sudo install -m 644 /tmp/index.html /var/www/html/index.html"
 
-      - name: Deployment Complete
+          echo "HTML deployed successfully!"
+
+      - name: Verify Website
+        env:
+          EC2_IP: ${{ needs.ansible.outputs.public_ip }}
         run: |
-          echo "Website deployed successfully!"
-          echo "Website URL: http://${{ needs.ansible.outputs.public_ip }}"
+          for i in {1..10}; do
+            if curl -fsS "http://$EC2_IP/" -o /dev/null; then
+              echo "Website is accessible!"
+              echo "Website URL: http://$EC2_IP"
+              exit 0
+            fi
+            echo "Waiting for HTTPD..."
+            sleep 5
+          done
+
+          echo "Website verification failed"
+          exit 1
+
+      - name: Deployment Summary
+        env:
+          EC2_IP: ${{ needs.ansible.outputs.public_ip }}
+        run: |
+          echo "=================================="
+          echo "DEPLOYMENT SUCCESSFUL"
+          echo "=================================="
+          echo "EC2 Public IP: $EC2_IP"
+          echo "Web Server: Apache HTTPD"
+          echo "URL: http://$EC2_IP"
+          echo "=================================="
