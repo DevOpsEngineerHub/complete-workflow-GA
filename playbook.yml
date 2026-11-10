@@ -10,17 +10,17 @@
         name: "*"
         state: latest
 
-    - name: Install Nginx
+    - name: Install HTTPD
       ansible.builtin.dnf:
-        name: nginx
+        name: httpd
         state: present
 
     - name: Start and enable Nginx
       ansible.builtin.service:
-        name: nginx
+        name: httpd
         state: started
         enabled: yes
 
     - name: Verify Nginx service
-      ansible.builtin.command: systemctl is-active nginx
+      ansible.builtin.command: systemctl is-active httpd
       changed_when: false
